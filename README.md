@@ -2,6 +2,7 @@
 Assignment 4 - Data Monitor Dashboard using ElasticSearch and Kibana <br>
 
 An application using ElasticSearch and Kibana to build a data analysis dashboard.
+
 --------
 
 1. The following url (http://open-notify.org/Open-Notify-API/ISS-Location-Now/) describes how a simple API was implemented to 
