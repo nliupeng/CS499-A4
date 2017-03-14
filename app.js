@@ -3,15 +3,15 @@
 'use strict';
 
 
-var express = require('express');					// https://github.com/expressjs/express
-var elasticsearch = require('elasticsearch');		// https://github.com/elastic/elasticsearch-js
-var request = require('request');					// https://github.com/request/request
+var express = require('express');                   // https://github.com/expressjs/express
+var elasticsearch = require('elasticsearch');       // https://github.com/elastic/elasticsearch-js
+var request = require('request');                   // https://github.com/request/request
 
 
 /* Elastic Search ============================ */
 
 var client = new elasticsearch.Client( {  
-    host: 'search-cs499-a4-hmdj2wt4kla6i7ccsgfqroydhe.us-east-1.es.amazonaws.com'
+    host: 'search-iss-location-retriever-szmxnpkkzrg3mpgozu6exz4i2e.us-east-1.es.amazonaws.com'
 });
 
 /* Send a HEAD request to / and allow up to 3 seconds for it to complete. */
@@ -22,8 +22,8 @@ client.ping({
     if (error) {
         console.trace('elasticsearch cluster is down!');
     } else {
-  	    console.log('elasticsearch is well');
- 	}
+        console.log('elasticsearch is well!');
+    }
 });
 
 
@@ -31,28 +31,35 @@ client.ping({
  * The api returns the current location of the International Space Station. 
  * The data is then inserted into the ElasticSearch server */
 var addDataToES = function () {
-	var f = setInterval(function() {
-		request('http://api.open-notify.org/iss-now.json', function (err, res, body) {
-			if (!err && res.statusCode == 200) { // success
-				var data = JSON.parse(body);	
-				client.index({
+    var f = setInterval(function() {
+        request('http://api.open-notify.org/iss-now.json', function (err, res, body) {
+            if (!err && res.statusCode == 200) { // success
+                var data = JSON.parse(body);	
+                client.index({
                     index: 'iss',
                     type: 'iss',
-                    body: data
+                    body: {
+                        "iss_position": {
+                            "latitude": parseFloat(data.iss_position.latitude),
+                            "longitude": parseFloat(data.iss_position.longitude)
+                        },
+                        "timestamp": data.timestamp,
+                        "message": data.message
+                    }
                 }, function (err, res) {
-                	if (res) {
-                		console.log('Data added to ES. Longitude: ' + data.iss_position.longitude + '. Latitude:' + data.iss_position.latitude);
-                		console.log(res); 	
-                	} else {
-                		console.log(err);
-                	}     
-                	console.log();               
+                    if (res) {
+                        console.log('Data added to ES. Longitude: ' + data.iss_position.longitude + '. Latitude:' + data.iss_position.latitude);
+                        console.log(res); 	
+                    } else {
+                        console.log(err);
+                    }     
+                    console.log();               
                 })				
-			} else { // failure
-				console.error('error:', err); 
-			}
-		})
-	}, 30*1000);
+            } else { // failure
+                console.error('error:', err); 
+            }
+        })
+    }, 30*1000);
 }
 
 
@@ -69,7 +76,7 @@ app.use(function(req, res, next) {
 });
 
 app.get('/', function(req, res) {
-	res.send('App is running. Preparing to store data into Elastic Search...');
+    res.send('App is running. Preparing to store data into Elastic Search...');
     addDataToES();
 })
 
